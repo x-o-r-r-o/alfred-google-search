@@ -600,7 +600,7 @@ class HistoryTests(Base):
     def test_google_links_are_remembered_as_links(self):
         d = self.env.fetch("youtu")
         row = by_title(d, "YouTube")
-        row = dict(row, variables=dict(row["variables"], gs_url="https://www.google.com/search?q=maps"))
+        row = dict(row, arg="https://www.google.com/search?q=maps")
         self.env.act(row)
         self.assertEqual(self.env.history()[0]["u"], "https://www.google.com/search?q=maps")
 
@@ -621,6 +621,7 @@ class HistoryTests(Base):
         self.assertEqual(len(h), 50)
         self.assertEqual(h[0]["q"], "new")
         self.assertEqual(len(self.env.sf("", history_limit="10")["items"]), 11)
+        self.assertEqual(len(self.env.sf("")["items"]), 51)  # 50 rows at most: typing finds older ones
         # turned off: nothing is shown or stored
         d = self.env.sf("new", history_limit="0")
         self.assertEqual(d["items"][0]["variables"]["gs_remember"], "0")

@@ -32,8 +32,8 @@ const MAX_QUERY_CHARS = 2000; // Google ignores anything much longer (and URLs h
 const TTL = 3600; // fresh suggestions
 const STALE = 86400; // kept for offline use, then pruned
 const MAX_CACHE_FILES = 2000;
-const HISTORY_MATCHES = 3; // history rows shown above the suggestions while typing
-const HISTORY_SHOWN = 200; // rows shown for an empty query
+const HISTORY_MATCHES = 4; // history rows shown above the suggestions while typing
+const HISTORY_SHOWN = 50; // rows shown for an empty query (typing finds older ones)
 const DEBOUNCE = 0.15; // seconds between showing the typed query and asking Google (Alfred's rerun)
 const MAX_RETRIES = 5;
 
@@ -524,7 +524,8 @@ function info(title, subtitle, icon, extra) {
 }
 // A modifier that does nothing on this row (otherwise Alfred runs the connection with the row's own arg)
 const off = (subtitle) => ({ valid: false, arg: "", subtitle });
-const vars = (action, extra) => Object.assign({ gs_action: action, gs_kind: "search", gs_query: "", gs_url: "", gs_private: "0", gs_remember: "0", gs_forget: "", gs_reopen: "" }, extra || {});
+// Variables for the Conditional and `act` (absent ones default there: search, not private, not remembered)
+const vars = (action, extra) => Object.assign({ gs_action: action }, extra || {});
 
 // "Google Web (no AI Overview) · past week"; with a query: "Google Web for “x” (no AI Overview) · past week"
 function describe(type, time, text) {
@@ -549,7 +550,7 @@ function searchRow(text, parsed, c, ctx, opts) {
     const p = e.private === undefined ? priv : e.private;
     return {
       valid: true, arg: url, subtitle: sub,
-      variables: vars(e.action || "open", { gs_query: withBangs, gs_url: url, gs_private: p ? "1" : "0", gs_remember: remember(p) }),
+      variables: vars(e.action || "open", { gs_query: withBangs, gs_private: p ? "1" : "0", gs_remember: remember(p) }),
     };
   };
   const main = mk("", type, time);
@@ -575,7 +576,6 @@ function searchRow(text, parsed, c, ctx, opts) {
     subtitle: o.subtitle || `Search ${describe(type, time, display)}`,
     arg: main.arg,
     autocomplete: withBangs,
-    quicklookurl: main.arg,
     text: { copy: text, largetype: text },
     icon: { path: `icons/${o.icon || TYPES.get(type).icon}.png` },
     variables: main.variables,
@@ -586,7 +586,7 @@ function searchRow(text, parsed, c, ctx, opts) {
 function linkRow(title, url, c, ctx, opts) {
   const o = opts || {};
   const priv = c.privateDefault;
-  const act = (p) => vars("open", { gs_kind: "link", gs_query: title, gs_url: url, gs_private: p ? "1" : "0", gs_remember: c.historyLimit > 0 && !p && o.remember !== false ? "1" : "0" });
+  const act = (p) => vars("open", { gs_kind: "link", gs_query: title, gs_private: p ? "1" : "0", gs_remember: c.historyLimit > 0 && !p && o.remember !== false ? "1" : "0" });
   const na = off("Not available for links");
   const display = clean(title);
   const shown = shortUrl(url);
@@ -596,12 +596,11 @@ function linkRow(title, url, c, ctx, opts) {
     subtitle: o.subtitle || `Open ${shown}`,
     arg: url,
     autocomplete: o.autocomplete || shown,
-    quicklookurl: url,
     text: { copy: url, largetype: url },
     icon: { path: `icons/${o.icon || "link"}.png` },
     variables: act(priv),
     mods: {
-      cmd: { valid: true, arg: url, subtitle: "Copy the link", variables: vars("copy", { gs_url: url }) },
+      cmd: { valid: true, arg: url, subtitle: "Copy the link", variables: vars("copy") },
       alt: na, ctrl: na, shift: na, fn: na,
       "cmd+shift": { valid: true, arg: url, subtitle: priv ? "Open in a normal window" : "Open in a private window (not remembered)", variables: act(!priv) },
       "cmd+alt": o.history ? { valid: true, arg: "forget", subtitle: "Remove from search history", variables: vars("forget", { gs_forget: historyKey(o.history), gs_reopen: ctx.raw }) }
@@ -818,7 +817,7 @@ function act(arg) {
     return undefined;
   }
   if (action !== "open") return undefined;
-  const url = env("gs_url", "") || String(arg || "");
+  const url = String(arg || "");
   const priv = env("gs_private", "0") === "1";
   const err = openUrl(url, priv, c);
   if (err) return err;

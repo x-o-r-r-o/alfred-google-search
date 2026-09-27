@@ -228,7 +228,7 @@
     {
       "id": "ua_text",
       "type": "universalaction",
-      "name": "Search Google",
+      "name": "Google Search",
       "text": true
     },
     {
