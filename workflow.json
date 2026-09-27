@@ -1,0 +1,300 @@
+{
+  "bundleid": "io.github.x-o-r-r-o.google-search",
+  "name": "Google Search",
+  "description": "Search Google with live suggestions, search history, and selected text",
+  "category": "Internet",
+  "createdby": "x-o-r-r-o",
+  "webaddress": "https://github.com/x-o-r-r-o/alfred-google-search",
+  "version": "1.0.0",
+  "variablesdontexport": [],
+  "config": [
+    {
+      "type": "textfield",
+      "variable": "keyword_google",
+      "label": "Keyword",
+      "description": "Search Google with suggestions",
+      "config": {
+        "default": "goo",
+        "placeholder": "goo",
+        "required": true,
+        "trim": true
+      }
+    },
+    {
+      "type": "checkbox",
+      "variable": "suggestions",
+      "label": "Suggestions",
+      "description": "Turned off, the workflow never connects to the internet: ↩ still searches",
+      "config": {
+        "default": true,
+        "required": false,
+        "text": "Show Google’s suggestions while typing"
+      }
+    },
+    {
+      "type": "popupbutton",
+      "variable": "search_type",
+      "label": "Search",
+      "description": "What ↩ searches",
+      "config": {
+        "default": "all",
+        "pairs": [
+          ["All results", "all"],
+          ["Web (without AI Overview)", "web"],
+          ["Images", "images"],
+          ["News", "news"],
+          ["Videos", "videos"],
+          ["Shopping", "shopping"],
+          ["AI Mode", "ai"]
+        ]
+      }
+    },
+    {
+      "type": "popupbutton",
+      "variable": "time_range",
+      "label": "Time range (fn↩)",
+      "description": "",
+      "config": {
+        "default": "w",
+        "pairs": [
+          ["Past hour", "h"],
+          ["Past 24 hours", "d"],
+          ["Past week", "w"],
+          ["Past month", "m"],
+          ["Past year", "y"]
+        ]
+      }
+    },
+    {
+      "type": "popupbutton",
+      "variable": "history_limit",
+      "label": "Search history",
+      "description": "Stored only on this Mac, in the workflow’s data folder",
+      "config": {
+        "default": "100",
+        "pairs": [
+          ["Don’t remember searches", "0"],
+          ["Remember the last 50", "50"],
+          ["Remember the last 100", "100"],
+          ["Remember the last 250", "250"],
+          ["Remember the last 1,000", "1000"]
+        ]
+      }
+    },
+    {
+      "type": "popupbutton",
+      "variable": "browser",
+      "label": "Browser",
+      "description": "",
+      "config": {
+        "default": "",
+        "pairs": [
+          ["Default browser", ""],
+          ["Safari", "com.apple.Safari"],
+          ["Google Chrome", "com.google.Chrome"],
+          ["Firefox", "org.mozilla.firefox"],
+          ["Arc", "company.thebrowser.Browser"],
+          ["Brave", "com.brave.Browser"],
+          ["Microsoft Edge", "com.microsoft.edgemac"],
+          ["Vivaldi", "com.vivaldi.Vivaldi"],
+          ["Opera", "com.operasoftware.Opera"],
+          ["Zen", "app.zen-browser.zen"],
+          ["Orion", "com.kagi.kagimacOS"]
+        ]
+      }
+    },
+    {
+      "type": "checkbox",
+      "variable": "private_window",
+      "label": "",
+      "description": "⌘⇧↩ does the opposite. Private searches are never remembered. Works with Chrome, Firefox, Brave, Edge, Vivaldi, Opera and Zen.",
+      "config": {
+        "default": false,
+        "required": false,
+        "text": "Open searches in a private window"
+      }
+    },
+    {
+      "type": "popupbutton",
+      "variable": "safesearch",
+      "label": "SafeSearch",
+      "description": "",
+      "config": {
+        "default": "",
+        "pairs": [
+          ["Google’s setting", ""],
+          ["Filter explicit results", "active"],
+          ["Off", "off"]
+        ]
+      }
+    },
+    {
+      "type": "textfield",
+      "variable": "language",
+      "label": "Language",
+      "description": "Code like en, de, pt-BR or zh-TW. Empty: suggestions follow the Mac’s language and Google keeps yours for results.",
+      "config": {
+        "default": "",
+        "placeholder": "Automatic",
+        "required": false,
+        "trim": true
+      }
+    },
+    {
+      "type": "textfield",
+      "variable": "region",
+      "label": "Region",
+      "description": "Two-letter country code like us, gb or de. Empty: suggestions follow the Mac’s region and Google picks results by location.",
+      "config": {
+        "default": "",
+        "placeholder": "Automatic",
+        "required": false,
+        "trim": true
+      }
+    },
+    {
+      "type": "textfield",
+      "variable": "google_domain",
+      "label": "Google domain",
+      "description": "",
+      "config": {
+        "default": "www.google.com",
+        "placeholder": "www.google.com",
+        "required": false,
+        "trim": true
+      }
+    },
+    {
+      "type": "popupbutton",
+      "variable": "selection_mode",
+      "label": "Selected text",
+      "description": "What the Hotkey and the Universal Action do",
+      "config": {
+        "default": "search",
+        "pairs": [
+          ["Search Google at once", "search"],
+          ["Show it in Alfred with suggestions", "alfred"]
+        ]
+      }
+    },
+    {
+      "type": "checkbox",
+      "variable": "clipboard_fallback",
+      "label": "",
+      "description": "Text copied by password managers is never used",
+      "config": {
+        "default": true,
+        "required": false,
+        "text": "Use the clipboard when nothing is selected"
+      }
+    },
+    {
+      "type": "textfield",
+      "variable": "extra_params",
+      "label": "Extra URL parameters",
+      "description": "Added to every search, like pws=0 (no personalised results) or lr=lang_en (pages in English only)",
+      "config": {
+        "default": "",
+        "placeholder": "pws=0&lr=lang_en",
+        "required": false,
+        "trim": true
+      }
+    }
+  ],
+  "objects": [
+    {
+      "id": "sf_search",
+      "type": "scriptfilter",
+      "keyword": "{var:keyword_google}",
+      "title": "Search Google",
+      "subtext": "With suggestions and your recent searches",
+      "running": "Asking Google…",
+      "script": "osascript -l JavaScript ./google.js search \"$1\"",
+      "queuemode": 2,
+      "note": "Set the keyword in the Workflow’s Configuration"
+    },
+    {
+      "id": "fallback",
+      "type": "fallback",
+      "text": "Search Google with suggestions for '{query}'",
+      "note": "Optionally add it to Features → Default Results → Fallbacks"
+    },
+    {
+      "id": "hotkey",
+      "type": "hotkey",
+      "argument": 1,
+      "note": "Search the selected text (or the clipboard)"
+    },
+    {
+      "id": "ua_text",
+      "type": "universalaction",
+      "name": "Search Google",
+      "text": true
+    },
+    {
+      "id": "selection",
+      "type": "script",
+      "script": "osascript -l JavaScript ./google.js selection \"$1\""
+    },
+    {
+      "id": "route",
+      "type": "conditional",
+      "conditions": [
+        {
+          "id": "copy",
+          "input": "{var:gs_action}",
+          "mode": 0,
+          "match": "copy",
+          "label": "Copy"
+        },
+        {
+          "id": "paste",
+          "input": "{var:gs_action}",
+          "mode": 0,
+          "match": "paste",
+          "label": "Paste"
+        }
+      ],
+      "elselabel": "Open, forget or clear",
+      "note": "Copy the URL or result, paste a result, or run the action"
+    },
+    {
+      "id": "copy",
+      "type": "clipboard",
+      "autopaste": false
+    },
+    {
+      "id": "paste",
+      "type": "clipboard",
+      "autopaste": true
+    },
+    {
+      "id": "act",
+      "type": "script",
+      "script": "osascript -l JavaScript ./google.js act \"$1\"",
+      "note": "Open in the browser and remember, forget one search, or clear the history"
+    },
+    {
+      "id": "notify",
+      "type": "notification"
+    }
+  ],
+  "connections": [
+    { "from": "fallback", "to": "sf_search" },
+    { "from": "hotkey", "to": "selection" },
+    { "from": "ua_text", "to": "selection" },
+    { "from": "selection", "to": "notify" },
+    { "from": "sf_search", "to": "route" },
+    { "from": "sf_search", "to": "route", "mod": "cmd" },
+    { "from": "sf_search", "to": "route", "mod": "alt" },
+    { "from": "sf_search", "to": "route", "mod": "ctrl" },
+    { "from": "sf_search", "to": "route", "mod": "shift" },
+    { "from": "sf_search", "to": "route", "mod": "fn" },
+    { "from": "sf_search", "to": "route", "mod": "cmd+shift" },
+    { "from": "sf_search", "to": "route", "mod": "cmd+alt" },
+    { "from": "route", "to": "copy", "output": "copy" },
+    { "from": "route", "to": "paste", "output": "paste" },
+    { "from": "route", "to": "act" },
+    { "from": "act", "to": "notify" }
+  ]
+}

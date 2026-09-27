@@ -1,0 +1,17 @@
+{
+  "icon": ["magnifyingglass", "#1A73E8"],
+  "search": ["magnifyingglass", "#1A73E8"],
+  "web": ["doc.text.magnifyingglass", "#1967D2"],
+  "images": ["photo.fill", "#0F9D58"],
+  "news": ["newspaper.fill", "#5F6368"],
+  "videos": ["play.rectangle.fill", "#D93025"],
+  "shopping": ["cart.fill", "#E37400"],
+  "ai": ["sparkles", "#7C3AED"],
+  "history": ["clock.arrow.circlepath", "#475569"],
+  "link": ["link", "#188038"],
+  "calc": ["equal", "#0D9488"],
+  "trash": ["trash.fill", "#DC2626"],
+  "offline": ["wifi.slash", "#64748B"],
+  "error": ["exclamationmark.triangle.fill", "#DC2626"],
+  "info": ["info.circle.fill", "#64748B"]
+}
