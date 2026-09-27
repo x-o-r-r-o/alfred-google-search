@@ -524,7 +524,7 @@ function info(title, subtitle, icon, extra) {
 }
 // A modifier that does nothing on this row (otherwise Alfred runs the connection with the row's own arg)
 const off = (subtitle) => ({ valid: false, arg: "", subtitle });
-const vars = (action, extra) => Object.assign({ gs_action: action, gs_query: "", gs_url: "", gs_private: "0", gs_remember: "0", gs_forget: "", gs_reopen: "" }, extra || {});
+const vars = (action, extra) => Object.assign({ gs_action: action, gs_kind: "search", gs_query: "", gs_url: "", gs_private: "0", gs_remember: "0", gs_forget: "", gs_reopen: "" }, extra || {});
 
 // "Google Web (no AI Overview) · past week"; with a query: "Google Web for “x” (no AI Overview) · past week"
 function describe(type, time, text) {
@@ -586,7 +586,7 @@ function searchRow(text, parsed, c, ctx, opts) {
 function linkRow(title, url, c, ctx, opts) {
   const o = opts || {};
   const priv = c.privateDefault;
-  const act = (p) => vars("open", { gs_query: title, gs_url: url, gs_private: p ? "1" : "0", gs_remember: c.historyLimit > 0 && !p && o.remember !== false ? "1" : "0" });
+  const act = (p) => vars("open", { gs_kind: "link", gs_query: title, gs_url: url, gs_private: p ? "1" : "0", gs_remember: c.historyLimit > 0 && !p && o.remember !== false ? "1" : "0" });
   const na = off("Not available for links");
   const display = clean(title);
   const shown = shortUrl(url);
@@ -670,9 +670,9 @@ function searchFilter(raw) {
       // A new keystroke: answer at once with the typed query (so ↩ never searches a half-typed one) and
       // the previous suggestions that still fit, then ask Google on the rerun if no key follows.
       const prevText = prevQuery ? parseQuery(prevQuery).text : "";
-      const prev = cached || (prevText ? readCached(cachePath(prevText, loc)) : null) || [];
+      const prev = prevText ? readCached(cachePath(prevText, loc)) || [] : [];
       const ft = fold(text);
-      list = prev.filter((s) => s.k !== "c" && (fold(s.t).startsWith(ft) || (s.u && fold(s.u.replace(/^https?:\/\/(www\.)?/, "")).startsWith(ft))));
+      list = cached || prev.filter((s) => s.k !== "c" && (fold(s.t).startsWith(ft) || (s.u && fold(s.u.replace(/^https?:\/\/(www\.)?/, "")).startsWith(ft))));
       rerun = DEBOUNCE;
       variables.gs_retries = "0";
     } else {
@@ -686,7 +686,9 @@ function searchFilter(raw) {
       }
     }
   }
-  const items = [searchRow(text, parsed, c, ctx, { uidKind: "typed" })];
+  const fq = fold(q);
+  const exact = history.find((h) => !h.u && fold(h.q) === fq);
+  const items = [searchRow(text, parsed, c, ctx, { uidKind: "typed", history: exact })];
   const seen = new Set([`q|${fold(text)}`]);
   const add = (row, key) => {
     if (!row || seen.has(key)) return;
@@ -705,7 +707,7 @@ function searchFilter(raw) {
       add(linkRow(s.t, s.u, c, ctx), `u|${urlKey(s.u)}`);
     }
   }
-  if (status) items.push(statusRow(status, list && list.length));
+  if (status) items.push(statusRow(status, list && list.length, !!rerun));
   items.forEach((it) => {
     if (!it.uid) it.uid = `${it.title}`;
   });
@@ -714,11 +716,11 @@ function searchFilter(raw) {
   return output(items, extra);
 }
 
-function statusRow(r, haveSaved) {
+function statusRow(r, haveSaved, retrying) {
   const saved = haveSaved ? "showing saved suggestions" : "no suggestions for now";
   if (r.error === "offline") return info("Google can’t be reached", `Check your connection: ${saved}. ↩ still opens the search.`, "offline");
   if (r.error === "limited") return info("Google is limiting suggestions", `Suggestions are paused for a few minutes: ${saved}. Searching still works.`, "offline");
-  if (r.error === "busy") return info("Slowing down", "Too many suggestion requests at once: trying again in a second", "offline");
+  if (r.error === "busy") return info("Slowing down", `Too many suggestion requests at once: ${retrying ? "trying again in a second" : "type again in a moment"}`, "offline");
   if (r.error === "unexpected") return info("Couldn’t read Google’s suggestions", `Unexpected response: ${saved}`, "error");
   return info("Couldn’t load suggestions", `Google answered HTTP ${r.status}: ${saved}`, "error");
 }
@@ -726,7 +728,7 @@ function statusRow(r, haveSaved) {
 function emptyQuery(c) {
   if (c.historyLimit <= 0) {
     const items = [info("Type to search Google", "Search history is off in the Workflow’s Configuration", "search")];
-    if (exists(historyPath())) items.push(info("Clear Search History…", "Searches saved before history was turned off are still stored", "trash", { autocomplete: ":clear" }));
+    if (exists(historyPath())) items.push(info("Clear Search History…", "Searches saved before history was turned off are still stored", "trash", { autocomplete: ":clear", uid: "clear" }));
     return output(items);
   }
   const ctx = { raw: "" };
@@ -744,7 +746,7 @@ function clearConfirm(c, ctx) {
     items.push({
       uid: "clear-confirm", title: `Clear All ${plural(n, "Saved Search", "Saved Searches")}`, subtitle: "↩ Delete your Google Search history from this Mac. This can’t be undone.",
       arg: "clear", valid: true, icon: { path: "icons/trash.png" }, variables: vars("clear"),
-      mods: { cmd: off(""), alt: off(""), ctrl: off(""), shift: off(""), fn: off(""), "cmd+shift": off(""), "cmd+alt": off("") },
+      mods: Object.fromEntries(["cmd", "alt", "ctrl", "shift", "fn", "cmd+shift", "cmd+alt"].map((m) => [m, off("Press ↩ without a modifier to clear the history")])),
     });
   } else items.push(info("Search history is empty", "Nothing to clear", "history", { uid: "clear-empty" }));
   // still searchable, in case ":clear" is what you meant
@@ -822,8 +824,7 @@ function act(arg) {
   if (err) return err;
   const q = env("gs_query", "").trim();
   if (!priv && env("gs_remember", "0") === "1" && q) {
-    const isLink = !url.startsWith(`https://${c.domain}/search?`);
-    remember(isLink ? { q: truncate(clean(q), 500), u: url } : { q: truncate(clean(q), MAX_QUERY_CHARS) }, c.historyLimit);
+    remember(env("gs_kind", "search") === "link" ? { q: truncate(clean(q), 500), u: url } : { q: truncate(clean(q), MAX_QUERY_CHARS) }, c.historyLimit);
   }
   return undefined;
 }

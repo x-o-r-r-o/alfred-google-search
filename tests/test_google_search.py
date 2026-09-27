@@ -338,6 +338,19 @@ class ScriptFilterTests(Base):
         self.assertEqual(titles(d), ["youtube t", "youtube tv"])
         self.assertEqual(d["rerun"], 0.15)
 
+    def test_stale_cache_shown_at_once(self):
+        self.env.fetch("youtu")
+        folder = os.path.join(self.env.cache, "suggest")
+        for f in os.listdir(folder):
+            old = time.time() - 7200
+            os.utime(os.path.join(folder, f), (old, old))
+        d = self.env.sf("youtu", gs_prev="you")
+        self.assertEqual(titles(d), ["youtu", "youtube", "YouTube", "youtube tv", "youtube music"])
+        self.assertEqual(d["rerun"], 0.15)
+        n = len(MOCK.queries)
+        self.env.fetch("youtu")
+        self.assertEqual(len(MOCK.queries), n + 1)  # refreshed on the rerun
+
     def test_modifiers(self):
         d = self.env.fetch("youtu", language="", region="")
         m = d["items"][1]["mods"]
@@ -574,6 +587,22 @@ class HistoryTests(Base):
         self.env.act(by_title(d, "two"), "cmd+alt")
         self.assertEqual(self.env.history(), [])
         self.assertEqual(self.env.logged()[-1], ["alfred-search", "goo tw"])
+
+    def test_typed_query_in_history_can_be_removed(self):
+        self.env.write_history([{"q": "Cats !i", "t": int(time.time() * 1000), "n": 1}])
+        d = self.env.sf("cats !i")
+        self.assertIs(d["items"][0]["mods"]["cmd+alt"]["valid"], True)
+        self.assertEqual(d["items"][0]["arg"], "https://www.google.com/search?q=cats&udm=2&hl=en&gl=us")
+        self.env.act(d["items"][0], "cmd+alt")
+        self.assertEqual(self.env.history(), [])
+        self.assertEqual(self.env.logged(), [["alfred-search", "goo cats !i"]])
+
+    def test_google_links_are_remembered_as_links(self):
+        d = self.env.fetch("youtu")
+        row = by_title(d, "YouTube")
+        row = dict(row, variables=dict(row["variables"], gs_url="https://www.google.com/search?q=maps"))
+        self.env.act(row)
+        self.assertEqual(self.env.history()[0]["u"], "https://www.google.com/search?q=maps")
 
     def test_clear_all(self):
         now = int(time.time() * 1000)

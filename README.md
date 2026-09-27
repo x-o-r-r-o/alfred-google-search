@@ -16,6 +16,9 @@ Search Google via the `goo` keyword. What you type is always the first result, f
 * <kbd>fn</kbd><kbd>↩</kbd> Search results from the past week (the time range is set in the Workflow’s Configuration).
 * <kbd>⌘</kbd><kbd>⇧</kbd><kbd>↩</kbd> Search in a private window, which isn’t remembered.
 * <kbd>⌘</kbd><kbd>Y</kbd> Preview the results with Quick Look.
+* <kbd>⌘</kbd><kbd>C</kbd> Copy the query.
+
+When <kbd>↩</kbd> is set to search Images or Web in the Workflow’s Configuration, <kbd>⌥</kbd><kbd>↩</kbd> or <kbd>⇧</kbd><kbd>↩</kbd> searches all results instead.
 
 On a calculation, <kbd>↩</kbd> copies the result and <kbd>⌘</kbd><kbd>↩</kbd> pastes it into the frontmost app.
 
